@@ -60,7 +60,7 @@ jt-server:
       udp: 7611
       tcp: 7611
     media-file:
-      path: D:/jt_data/media_file
+      path: /home/aaditya/jt_data/media_file
     alarm-file:
       host: 127.0.0.1
       port: 7612
@@ -68,4 +68,13 @@ jt-server:
   alarm-file:
     enable: true
     port: 7612
-    path: D:/jt_data/alarm_file
+    path: /home/aaditya/jt_data/alarm_file
+    
+  # JT/T1078 Basic Configuration
+  t1078:
+    enable: true
+    port:
+      tcp: 1078
+      udp: 1078
+    storage:
+      path: /home/aaditya/jt_data/t1078_data
