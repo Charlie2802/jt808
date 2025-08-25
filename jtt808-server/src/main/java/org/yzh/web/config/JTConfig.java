@@ -6,6 +6,7 @@ import io.github.yezhihao.netmc.codec.Delimiter;
 import io.github.yezhihao.netmc.codec.LengthField;
 import io.github.yezhihao.netmc.core.HandlerMapping;
 import io.github.yezhihao.netmc.session.SessionManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -20,12 +21,18 @@ import org.yzh.web.endpoint.JTHandlerInterceptor;
 public class JTConfig {
 
     private final JTMessageAdapter messageAdapter;
+    private final JTMessageAdapter t1078MessageAdapter;
     private final HandlerMapping handlerMapping;
     private final JTHandlerInterceptor handlerInterceptor;
     private final SessionManager sessionManager;
 
-    public JTConfig(JTMessageAdapter messageAdapter, HandlerMapping handlerMapping, JTHandlerInterceptor handlerInterceptor, SessionManager sessionManager) {
+    public JTConfig(JTMessageAdapter messageAdapter, 
+                   @Qualifier("t1078MessageAdapter") JTMessageAdapter t1078MessageAdapter,
+                   HandlerMapping handlerMapping, 
+                   JTHandlerInterceptor handlerInterceptor, 
+                   SessionManager sessionManager) {
         this.messageAdapter = messageAdapter;
+        this.t1078MessageAdapter = t1078MessageAdapter;
         this.handlerMapping = handlerMapping;
         this.handlerInterceptor = handlerInterceptor;
         this.sessionManager = sessionManager;
@@ -79,6 +86,42 @@ public class JTConfig {
                 .setHandlerMapping(handlerMapping)
                 .setHandlerInterceptor(handlerInterceptor)
                 .setName("AlarmFile")
+                .build();
+    }
+
+    // T1078 Video Streaming Servers
+    @ConditionalOnProperty(value = "jt-server.t1078.enable", havingValue = "true")
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public Server t1078TCPServer(@Value("${jt-server.t1078.port.tcp}") int port) {
+        return NettyConfig.custom()
+                .setIdleStateTime(180, 0, 0)
+                .setPort(port)
+                // T1078 video packets can be larger than JT808
+                .setMaxFrameLength(2 + 21 + 65535 * 2 + 1 + 2)
+                .setDelimiters(new Delimiter(new byte[]{0x7e}, false))
+                .setDecoder(t1078MessageAdapter)
+                .setEncoder(t1078MessageAdapter)
+                .setHandlerMapping(handlerMapping)
+                .setHandlerInterceptor(handlerInterceptor)
+                .setSessionManager(sessionManager)
+                .setName("1078-TCP")
+                .build();
+    }
+
+    @ConditionalOnProperty(value = "jt-server.t1078.enable", havingValue = "true")
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public Server t1078UDPServer(@Value("${jt-server.t1078.port.udp}") int port) {
+        return NettyConfig.custom()
+                .setPort(port)
+                .setMaxFrameLength(2 + 21 + 65535 * 2 + 1 + 2)
+                .setDelimiters(new Delimiter(new byte[]{0x7e}, false))
+                .setDecoder(t1078MessageAdapter)
+                .setEncoder(t1078MessageAdapter)
+                .setHandlerMapping(handlerMapping)
+                .setHandlerInterceptor(handlerInterceptor)
+                .setSessionManager(sessionManager)
+                .setName("1078-UDP")
+                .setEnableUDP(true)
                 .build();
     }
 }

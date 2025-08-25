@@ -3,8 +3,11 @@ package org.yzh.web.endpoint;
 import io.github.yezhihao.netmc.core.annotation.Endpoint;
 import io.github.yezhihao.netmc.core.annotation.Mapping;
 import io.github.yezhihao.netmc.session.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.yzh.protocol.jsatl12.DataPacket;
 import org.yzh.protocol.t1078.T1003;
 import org.yzh.protocol.t1078.T1005;
 import org.yzh.protocol.t1078.T1205;
@@ -17,6 +20,8 @@ import static org.yzh.protocol.commons.JT1078.*;
 @Endpoint
 @Component
 public class T1078DataEndpoint {
+
+    private static final Logger log = LoggerFactory.getLogger(T1078DataEndpoint.class);
 
     @Autowired
     private T1078DataReader t1078DataReader;
@@ -57,8 +62,13 @@ public class T1078DataEndpoint {
     }
 
     @Mapping(types = 实时音视频流及透传数据传输, desc = "实时音视频流及透传数据传输")
-    public void T30316364(byte[] data, Session session) {
+    public void T30316364(DataPacket dataPacket, Session session) {
         String deviceId = session.getClientId();
+        log.info("T1078 Real-time video data received from device: {}, packet size: {} bytes", 
+                deviceId, dataPacket.getPayload().readableBytes());
+        
+        // Convert DataPacket to byte array for processing
+        byte[] data = convertDataPacketToBytes(dataPacket);
         logT1078Message(deviceId, 0x30316364, "实时音视频流及透传数据传输", data);
         // For real-time video data, we just log it, no response needed
     }
@@ -70,7 +80,7 @@ public class T1078DataEndpoint {
             t1078DataReader.processT1078Packet(deviceId, messageId, data);
         } catch (Exception e) {
             // Log error but don't fail
-            System.err.println("Error processing T1078 message: " + e.getMessage());
+            log.error("Error processing T1078 message: {}", e.getMessage(), e);
         }
     }
 
@@ -81,6 +91,19 @@ public class T1078DataEndpoint {
         } else {
             // For now, just return a simple representation
             return message.toString().getBytes();
+        }
+    }
+
+    private byte[] convertDataPacketToBytes(DataPacket dataPacket) {
+        try {
+            // Get the payload from DataPacket
+            io.netty.buffer.ByteBuf payload = dataPacket.getPayload();
+            byte[] data = new byte[payload.readableBytes()];
+            payload.getBytes(payload.readerIndex(), data);
+            return data;
+        } catch (Exception e) {
+            log.error("Error converting DataPacket to bytes: {}", e.getMessage(), e);
+            return new byte[0];
         }
     }
 }

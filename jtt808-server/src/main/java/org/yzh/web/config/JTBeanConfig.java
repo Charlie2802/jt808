@@ -11,9 +11,9 @@ import org.yzh.protocol.codec.DataFrameMessageDecoder;
 import org.yzh.protocol.codec.JTMessageAdapter;
 import org.yzh.protocol.codec.JTMessageEncoder;
 import org.yzh.protocol.codec.MultiPacketDecoder;
+import org.yzh.web.endpoint.JTSessionListener;
 import org.yzh.web.endpoint.JTHandlerInterceptor;
 import org.yzh.web.endpoint.JTMultiPacketListener;
-import org.yzh.web.endpoint.JTSessionListener;
 import org.yzh.web.model.enums.SessionKey;
 
 @Configuration
@@ -54,6 +54,14 @@ public class JTBeanConfig {
     @Bean
     public JTMessageAdapter alarmFileMessageAdapter(SchemaManager schemaManager) {
         JTMessageEncoder encoder = new JTMessageEncoder(schemaManager);
+        DataFrameMessageDecoder decoder = new DataFrameMessageDecoder(schemaManager, new byte[]{0x30, 0x31, 0x63, 0x64});
+        return new WebLogAdapter(encoder, decoder);
+    }
+
+    @Bean
+    public JTMessageAdapter t1078MessageAdapter(SchemaManager schemaManager) {
+        JTMessageEncoder encoder = new JTMessageEncoder(schemaManager);
+        // Use DataFrameMessageDecoder for T1078 video streaming data
         DataFrameMessageDecoder decoder = new DataFrameMessageDecoder(schemaManager, new byte[]{0x30, 0x31, 0x63, 0x64});
         return new WebLogAdapter(encoder, decoder);
     }
